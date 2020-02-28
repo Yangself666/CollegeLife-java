@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xyz.xiaoyu995.dao.MemberMapper">
+    <select id="queryAllMembers" resultType="member">
+        select *
+        from member;
+    </select>
+    <select id="queryAllMembersByCid" resultType="member" parameterType="int">
+        select *
+        from member
+        where cid = #{cid};
+    </select>
+    <select id="queryMemberBySid" resultType="member" parameterType="string">
+        select *
+        from member
+        where sid = #{sid};
+    </select>
+    <select id="queryAllMembersByCoid" resultType="member" parameterType="int">
+        select m.*
+        from member m
+                 left outer join classes c on m.cid = c.cid
+        where coid = #{coid};
+    </select>
+    <select id="queryMemberByOpenid" parameterType="string" resultType="member">
+        select *
+        from member
+        where openid = #{openid}
+    </select>
+
+    <resultMap id="entireMember" type="allMember">
+        <association property="coName" column="coid" select="queryCollegeNameByCoid"/>
+        <association property="coNotice" column="coid" select="queryCollegeNoticeByCoid"/>
+    </resultMap>
+
+    <select id="queryEntireMemberByOpenid" parameterType="string" resultMap="entireMember">
+        select m.sid,
+               m.openid,
+               m.sName,
+               m.sNumber,
+               c.cName,
+               c.cNotice,
+               c.coid,
+               m.level
+        from member m
+                 right outer join classes c on m.cid = c.cid
+        where openid = #{openid}
+    </select>
+
+    <select id="queryClassByCid" resultType="classes" parameterType="int">
+        select *
+        from classes
+        where cid = #{cid}
+    </select>
+    <!--======================================================-->
+    <!--    查询班级名称-->
+    <select id="queryClassNameByCid" resultType="string" parameterType="int">
+        select cName
+        from classes
+        where cid = #{cid}
+    </select>
+    <!--查询学院名称-->
+    <select id="queryCollegeNameByCoid" resultType="string" parameterType="int">
+        select coName
+        from college
+        where coid = #{coid}
+    </select>
+    <select id="queryCollegeNoticeByCoid" resultType="string" parameterType="int">
+        select coNotice
+        from college
+        where coid = #{coid}
+    </select>
+
+
+    <!--================================================-->
+
+    <resultMap id="memberLocations" type="location">
+        <association property="cName" column="cid" select="queryClassNameByCid"/>
+    </resultMap>
+
+
+    <select id="queryLocationBySid" resultMap="memberLocations" parameterType="string">
+        select m.sid, m.sName, m.sNumber, m.cid, l.longitude, l.latitude, l.updateTime
+        from member m
+                 left outer join location l on m.sid = l.sid
+        where l.sid = #{sid}
+    </select>
+
+    <select id="queryAllLocations" resultMap="memberLocations">
+        select m.sid, m.sName, m.sNumber, m.cid, l.longitude, l.latitude, l.updateTime
+        from location l
+                 left outer join member m on m.sid = l.sid
+    </select>
+
+    <select id="queryAllLocationsByCid" resultMap="memberLocations" parameterType="int">
+        select m.sid, m.sName, m.sNumber, m.cid, l.longitude, l.latitude, l.updateTime
+        from location l
+                 left outer join member m on m.sid = l.sid
+        where m.cid = #{cid}
+    </select>
+
+    <select id="queryAllLocationsByCoid" resultMap="memberLocations" parameterType="int">
+        select m.sid, m.sName, m.sNumber, m.cid, l.longitude, l.latitude, l.updateTime
+        from member m
+                 right outer join location l on m.sid = l.sid
+                 left outer join classes c on m.cid = c.cid
+        where coid = #{coid}
+    </select>
+
+    <!--=====================添加数据=====================-->
+    <insert id="addMember" parameterType="member">
+        insert into member (sid, openid, sName, sNumber, cid, level)
+        values (#{sid}, #{openid}, #{sName}, #{sNumber}, #{cid}, #{level})
+    </insert>
+
+    <select id="addLocation" parameterType="tempLocation">
+        insert into location (sid, longitude, latitude, updateTime)
+        values (#{sid}, #{longitude}, #{latitude}, #{updateTime});
+    </select>
+
+    <select id="alterLocation" parameterType="tempLocation">
+        update location
+        set longitude  = #{longitude},
+            latitude   = #{latitude},
+            updateTime = #{updateTime}
+        where sid = #{sid};
+    </select>
+
+    <update id="alterMember" parameterType="member">
+        update member
+        set sName   = #{sName},
+            sNumber = #{sNumber},
+            cid     = #{cid},
+            level   = #{level}
+        where sid = #{sid}
+    </update>
+
+    <update id="alterClassNotice" parameterType="map">
+        update classes
+        set cNotice = #{cNotice}
+        where cid = #{cid};
+    </update>
+    <update id="alterCollegeNotice" parameterType="map">
+        update college
+        set coNotice = #{coNotice}
+        where coid = #{coid};
+    </update>
+
+
+    <!--================alterLevel相关操作=================-->
+    <insert id="addAlterLevel" parameterType="alterLevel">
+        insert into alterLevelList (sid, sName, sNumber, preLevel, newLevel)
+        values (#{sid}, #{sName}, #{sNumber}, #{preLevel}, #{newLevel});
+    </insert>
+
+    <delete id="delAlterLevelBySid" parameterType="string">
+        delete
+        from alterLevelList
+        where sid = #{sid}
+    </delete>
+
+    <update id="updateAlterLevel" parameterType="alterLevel">
+        update alterLevelList
+        set sName   = #{sName},
+            sNumber=#{sNumber},
+            preLevel=#{preLevel},
+            newLevel=#{newLevel}
+        where sid = #{sid};
+    </update>
+
+    <select id="queryAlterLevelBySid" parameterType="string" resultType="alterLevel">
+        select *
+        from alterLevelList
+        where sid = #{sid};
+    </select>
+
+    <update id="alterLevelBySid" parameterType="map">
+        update collegeLife.member
+        set collegeLife.member.level = #{newLevel}
+        where sid = #{sid};
+    </update>
+
+
+    <select id="queryClassApplyByCid" parameterType="int" resultType="alterLevel">
+        select * from alterLevelList a left outer join member m on a.sid = m.sid
+        where cid = #{cid} and a.newLevel &lt;= 1;
+    </select>
+
+    <select id="queryCollegeApply" resultType="alterLevel">
+        select * from alterLevelList where newLevel = 2;
+    </select>
+    <select id="queryAllApply" resultType="alterLevel">
+        select * from alterLevelList;
+    </select>
+
+
+</mapper>
